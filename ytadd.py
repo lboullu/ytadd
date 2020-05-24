@@ -115,7 +115,7 @@ def main(argv):
                 response_exec = request.execute()
                 #print("Added 1 video: ", videoV['id'])
             except googleapiclient.errors.HttpError:
-                #print("Video ", videoV['id'], " already in playlist")
+                print("Video ", videoV['id'], " already in playlist")
         elif outputplaylistCriteria !="":
             if vid_date[:10] >= dateFrom:
                 request = youtube.playlistItems().insert(
@@ -135,7 +135,7 @@ def main(argv):
                     response_exec = request.execute()
                     #print("Added 1 video to auxiliary playlist: ", videoV['id'])          
                 except googleapiclient.errors.HttpError:
-                    #print("Video ", videoV['id'], " already in playlist")                    
+                    print("Video ", videoV['id'], " already in playlist")                    
   
     
 
