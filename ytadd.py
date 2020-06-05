@@ -18,11 +18,13 @@ def main(argv):
     #Reading arguments
     inputplaylist = ''
     outputplaylist = ''
-    CriteriaMinute = '0'
+    CriteriaMinute = 0
     outputplaylistCriteria = ''
     dateFrom = '1970-01-01'
+    #startFrom = 1
+    maxItem = 30
     try:
-        opts, args = getopt.getopt(argv,"i:o:c:a:d",["iplaylist=","oplaylist=", "criteriaM=", "oplaylist2=", "dateFrom="])
+        opts, args = getopt.getopt(argv,"i:o:c:a:d:s:m:",["iplaylist=","oplaylist=", "criteriaM=", "oplaylist2=", "dateFrom=", "startFrom=", "maxItem="])
     except getopt.GetoptError:
         print('-i PlaylistFrom -o PlaylistTo -c criteria -d PlaylistCriteria')
         sys.exit(2)
@@ -37,6 +39,10 @@ def main(argv):
             dateFrom = arg
         elif opt in ("-a", "--oplaylist2"):
             outputplaylistCriteria = arg
+       # elif opt in ("-s", "--startFrom"):
+       #     startFrom = int(arg)
+        elif opt in ("-m", "--maxItem"):
+            maxItem = int(arg)
 
     ##### Authentification #####
     # Disable OAuthlib's HTTPS verification when running locally.
@@ -62,16 +68,37 @@ def main(argv):
 
     #### Obtaining videos ####
 
-    print(inputplaylist)
+    #print(inputplaylist)
 
     #Create list of videos from playlist        
     request = youtube.playlistItems().list(
             part="snippet,contentDetails",
-            maxResults=30,
+            maxResults=maxItem,
             playlistId=inputplaylist
         )
     response = request.execute()
 
+    #print(response['items'])
+
+    if maxItem > 49:
+        newmaxItem = maxItem - 49
+        nextPageToken = response.get('nextPageToken')
+        while ('nextPageToken' in response) and newmaxItem > 0 :
+            nextPage = youtube.playlistItems().list(
+                part="snippet",
+                playlistId=inputplaylist,
+                maxResults=newmaxItem,
+                pageToken=nextPageToken
+                ).execute()
+            response['items'] = response['items'] + nextPage['items']
+            if 'nextPageToken' not in nextPage:
+                response.pop('nextPageToken', None)
+            else:
+                nextPageToken = nextPage['nextPageToken']
+            newmaxItem = newmaxItem - 49
+
+    
+ 
     #print("Got playlist item")
 
     ListVideoId = []
@@ -80,6 +107,9 @@ def main(argv):
 
     list_unique = np.unique(np.array(ListVideoId))
     list_unique_join = ','.join(list_unique.tolist())
+
+    #print(len(list_unique))
+    #print(list_unique)
     
 
     request = youtube.videos().list(
@@ -97,7 +127,9 @@ def main(argv):
         vid_duration = isodate.parse_duration(videoV['contentDetails']['duration']).total_seconds()
         #print(vid_date)
         #print(dateFrom)        
-        if vid_duration > CriteriaMinute and vid_date[:10] >= dateFrom:            
+        if vid_duration > CriteriaMinute and vid_date[:10] >= dateFrom:
+            #print(vid_date[:10])
+            #print(vid_date[:10] >= dateFrom)    
             request = youtube.playlistItems().insert(
                 part="snippet",
                 body={
